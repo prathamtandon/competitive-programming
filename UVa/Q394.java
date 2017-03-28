@@ -3,7 +3,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.StringTokenizer;
-import java.util.concurrent.ExecutionException;
 
 class Q394 {
     private static HashMap<String, ArrayDeclaration> declarations = new HashMap<>();
