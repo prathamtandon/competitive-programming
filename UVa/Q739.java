@@ -40,6 +40,7 @@ class Q739 {
     }
 
     private static class SoundexCode {
+        private static final int ENCODING_LEN = 4;
         private static HashMap<String, Integer> codeMap;
 
         SoundexCode() {
@@ -86,7 +87,7 @@ class Q739 {
         }
 
         private StringBuilder padEncoding(StringBuilder builder) {
-            while(builder.length() < 4) {
+            while(builder.length() < ENCODING_LEN) {
                 builder.append(0);
             }
             return builder;
