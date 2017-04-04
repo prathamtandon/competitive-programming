@@ -11,7 +11,7 @@ class Q727 {
         while(tests > 0) {
             StringBuilder infix = new StringBuilder();
             String line;
-            while(!(line = reader.readLine()).equals("")) {
+            while((line = reader.readLine()).length() > 0) {
                 infix.append(line);
             }
             System.out.println(infixToPostfix(infix.toString()));
