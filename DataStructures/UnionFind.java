@@ -16,12 +16,18 @@ public class UnionFind {
     void unionSet(int i, int j) {
         int ri = findSet(i);
         int rj = findSet(j);
-        pset[ri] = rj;
-        ssize[rj] += ssize[ri];
-        ssize[ri] = 0;
+        if(ri == rj) return;
+        if(ssize[ri] < ssize[rj]) {
+            pset[ri] = rj;
+            ssize[rj] += ssize[ri];
+        } else {
+            pset[rj] = ri;
+            ssize[ri] += ssize[rj];
+        }
         numSets--;
     }
 
+    @SuppressWarnings("WeakerAccess")
     int findSet(int i) {
         if(pset[i] == i)
             return i;
