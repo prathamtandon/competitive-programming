@@ -95,10 +95,10 @@ class Q11402 {
 
         private void mutate(int code, int node, int b, int e, int lo, int hi) {
             propagate(node, b, e);
-            if(b > hi || e < lo)
+            if(b > e || b > hi || e < lo)
                 return;
             if(b >= lo && e <= hi) {
-                performOp(operationToState(code), node, b, e);
+                performOp(code, node, b, e);
                 updateChildren(operationToState(code), node, b, e);
             }
             else {
@@ -111,15 +111,21 @@ class Q11402 {
             }
         }
 
-        private void performOp(State s, int n, int b, int e) {
-            if(s == State.Updated)
-                return;
-            if(s == State.PendingSet)
+        private void performOp(int op, int n, int b, int e) {
+            if(op == 1)
                 tree[n] = e - b + 1;
-            else if(s == State.PendingClear)
+            else if(op == 0)
                 tree[n] = 0;
             else
                 tree[n] = e - b + 1 - tree[n];
+        }
+
+        private int StateToOp(State s) {
+            if(s == State.PendingSet)
+                return 1;
+            if(s == State.PendingClear)
+                return 0;
+            return 2;
         }
 
         private void updateChildren(State s, int node, int b, int e) {
@@ -127,8 +133,13 @@ class Q11402 {
                 return;
             int leftIndex = 2 * node + 1;
             int rightIndex = 2 * node + 2;
-            updateState(leftIndex, states[leftIndex], s);
-            updateState(rightIndex, states[rightIndex], s);
+            if(s == State.PendingSet || s == State.PendingClear) {
+                states[leftIndex] = states[rightIndex] = s;
+            }
+            else {
+                states[leftIndex] = inverseState(states[leftIndex]);
+                states[rightIndex] = inverseState(states[rightIndex]);
+            }
         }
 
         private State operationToState(int code) {
@@ -139,21 +150,14 @@ class Q11402 {
             return State.PendingFlip;
         }
 
-        private void updateState(int n, State from, State to) {
-            if(to == State.Updated)
-                return;
-            if(to == State.PendingSet || to == State.PendingClear)
-                states[n] = to;
-            else {
-                if(from == State.Updated)
-                    states[n] = to;
-                else if(from == State.PendingSet)
-                    states[n] = State.PendingClear;
-                else if(from == State.PendingClear)
-                    states[n] = State.PendingSet;
-                else
-                    states[n] = State.Updated;
-            }
+        private State inverseState(State s) {
+            if(s == State.PendingClear)
+                return State.PendingSet;
+            if(s == State.PendingSet)
+                return State.PendingClear;
+            if(s == State.PendingFlip)
+                return State.Updated;
+            return State.PendingFlip;
         }
 
         int query(int lo, int hi) {
@@ -161,9 +165,9 @@ class Q11402 {
         }
 
         private int query(int node, int b, int e, int lo, int hi) {
-            if(b > hi || e < lo)
-                return -1;
             propagate(node, b, e);
+            if(b > e || b > hi || e < lo)
+                return -1;
             if(b >= lo && e <= hi) {
                 return tree[node];
             }
@@ -180,9 +184,11 @@ class Q11402 {
         }
 
         private void propagate(int node, int b, int e) {
-            performOp(states[node], node, b ,e);
-            updateChildren(states[node], node, b, e);
-            states[node] = State.Updated;
+            if(states[node] != State.Updated) {
+                performOp(StateToOp(states[node]), node, b, e);
+                updateChildren(states[node], node, b, e);
+                states[node] = State.Updated;
+            }
         }
     }
 }
