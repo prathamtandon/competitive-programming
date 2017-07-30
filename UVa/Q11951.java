@@ -53,7 +53,7 @@ class Q11951 {
                 }
                 if(flag)
                     break;
-                KadaneResult kr = getMaxSumSubarrayLimits(temp, budget);
+                KadaneResult kr = getLongestSubArrayWithSumWithinBudget(temp, budget);
                 int area = (right - left + 1) * kr.len;
                 if(area > r.area) {
                     r.area = area;
@@ -68,7 +68,7 @@ class Q11951 {
         return r;
     }
 
-    private static KadaneResult getMaxSumSubarrayLimits(int[] arr, long budget) {
+    private static KadaneResult getLongestSubArrayWithSumWithinBudget(int[] arr, long budget) {
         long ans = 0;
         long sum = arr[0];
         int start = 0;
