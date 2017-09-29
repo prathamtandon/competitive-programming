@@ -11,7 +11,9 @@ public class LFUCacheDriver {
         System.out.println(cache.get("Third"));
         System.out.println(cache.get("Third"));
         System.out.println(cache.get("Third"));
-        cache.put("Second", 301);
+        cache.put("Third", 301);
+        cache.put("Fourth", 1011);
+        System.out.println(cache.get("Fourth"));
         System.out.println(cache.evict());
         System.out.println(cache.evict());
     }

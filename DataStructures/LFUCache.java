@@ -3,30 +3,30 @@ import java.util.HashMap;
 class LFUCache<TKey, TValue> {
 
     private class LFUTable {
-        private class CacheEntry {
+        private class Entry {
             TValue val;
             ItemList.Node node;
         }
 
-        private HashMap<TKey, CacheEntry> table = new HashMap<TKey, CacheEntry>();
+        private HashMap<TKey, Entry> table = new HashMap<TKey, Entry>();
 
         boolean hasKey(TKey key)
         {
             return table.containsKey(key);
         }
 
-        public CacheEntry get(TKey key)
+        public Entry get(TKey key)
         {
             return table.get(key);
         }
 
-        public CacheEntry put(TKey key, TValue val)
+        public Entry put(TKey key, TValue val)
         {
-            CacheEntry cacheEntry = new CacheEntry();
-            cacheEntry.val = val;
-            cacheEntry.node = null;
-            table.put(key, cacheEntry);
-            return cacheEntry;
+            Entry entry = new Entry();
+            entry.val = val;
+            entry.node = null;
+            table.put(key, entry);
+            return entry;
         }
 
         void delete(TKey key)
@@ -52,7 +52,7 @@ class LFUCache<TKey, TValue> {
         Node head = null;
         Node tail = null;
 
-        public Node add(int val, Node before, Node after)
+        Node add(int val, Node before, Node after)
         {
             Node freqNode = new Node(val);
             if(before != null) {
@@ -80,7 +80,7 @@ class LFUCache<TKey, TValue> {
             return head == null;
         }
 
-        void delete(Node node)
+        private void delete(Node node)
         {
             if(head == node && head == tail)
             {
@@ -98,6 +98,38 @@ class LFUCache<TKey, TValue> {
                 node.prev.next = node.next;
             if(node.next != null)
                 node.next.prev = node.prev;
+        }
+
+        private void deleteIfEmpty(Node freqNode)
+        {
+            if(freqNode.itemList.isEmpty())
+                delete(freqNode);
+        }
+
+        ItemList.Node incrementFrequency(ItemList.Node itemNode)
+        {
+            Node currentFreqNode = itemNode.parent;
+            currentFreqNode.itemList.delete(itemNode);
+            Node nextFreqNode = currentFreqNode.next;
+            if(nextFreqNode == null)
+            {
+                nextFreqNode = add(currentFreqNode.val + 1, tail, null);
+            }
+            else if(nextFreqNode.val != currentFreqNode.val + 1)
+            {
+                nextFreqNode = add(currentFreqNode.val + 1, currentFreqNode, nextFreqNode);
+            }
+            deleteIfEmpty(currentFreqNode);
+            return nextFreqNode.itemList.add(itemNode.val, nextFreqNode);
+        }
+
+        ItemList.Node evict()
+        {
+            ItemList.Node firstNode = head.itemList.head;
+            head.itemList.delete(firstNode);
+            if(head.itemList.isEmpty())
+                delete(head);
+            return firstNode;
         }
     }
 
@@ -175,58 +207,33 @@ class LFUCache<TKey, TValue> {
         if(!lfuTable.hasKey(key))
             throw new IllegalArgumentException("Key not found");
 
-        LFUTable.CacheEntry cacheEntry = lfuTable.get(key);
-        FrequencyList.Node freqNode = cacheEntry.node.parent;
-        freqNode.itemList.delete(cacheEntry.node);
-        FrequencyList.Node nextNode = freqNode.next;
-        if(nextNode == null)
-        {
-            nextNode = frequencyList.add(freqNode.val + 1, frequencyList.tail, null);
-        }
-        else if(nextNode.val != freqNode.val + 1)
-        {
-            nextNode = frequencyList.add(freqNode.val + 1, freqNode, nextNode);
-        }
-        cacheEntry.node = nextNode.itemList.add(key, nextNode);
-        if(freqNode.itemList.isEmpty())
-            frequencyList.delete(freqNode);
-        return cacheEntry.val;
+        LFUTable.Entry entry = lfuTable.get(key);
+        entry.node = frequencyList.incrementFrequency(entry.node);
+        return entry.val;
     }
 
     public void put(TKey key, TValue val)
     {
-        LFUTable.CacheEntry cacheEntry;
+        LFUTable.Entry entry;
         if(!lfuTable.hasKey(key))
         {
-            cacheEntry = lfuTable.put(key, val);
-            FrequencyList.Node freqNode;
+            entry = lfuTable.put(key, val);
+            FrequencyList.Node freqNode = frequencyList.head;
             if(frequencyList.isEmpty())
             {
                 freqNode = frequencyList.add(1, null, null);
             }
-            else
+            else if(frequencyList.head.val != 1)
             {
-                freqNode = frequencyList.head;
+                freqNode = frequencyList.add(1, null, frequencyList.head);
             }
-            cacheEntry.node = freqNode.itemList.add(key, freqNode);
+            entry.node = freqNode.itemList.add(key, freqNode);
         }
         else
         {
-            cacheEntry = lfuTable.get(key);
-            FrequencyList.Node freqNode = cacheEntry.node.parent;
-            freqNode.itemList.delete(cacheEntry.node);
-            FrequencyList.Node nextNode = freqNode.next;
-            if(nextNode == null)
-            {
-                nextNode = frequencyList.add(freqNode.val + 1, frequencyList.tail, null);
-            }
-            else if(nextNode.val != freqNode.val + 1)
-            {
-                nextNode = frequencyList.add(freqNode.val + 1, freqNode, nextNode);
-            }
-            cacheEntry.node = nextNode.itemList.add(key, nextNode);
-            if(freqNode.itemList.isEmpty())
-                frequencyList.delete(freqNode);
+            entry = lfuTable.get(key);
+            entry.val = val;
+            entry.node = frequencyList.incrementFrequency(entry.node);
         }
     }
 
@@ -234,11 +241,7 @@ class LFUCache<TKey, TValue> {
     {
         if(frequencyList.isEmpty())
             throw new UnsupportedOperationException("Operation not allowed");
-        FrequencyList.Node freqNode = frequencyList.head;
-        ItemList.Node itemNode = freqNode.itemList.head;
-        freqNode.itemList.delete(itemNode);
-        if(freqNode.itemList.isEmpty())
-            frequencyList.delete(freqNode);
+        ItemList.Node itemNode = frequencyList.evict();
         TKey result = itemNode.val;
         lfuTable.delete(result);
         return result;
